@@ -2,7 +2,7 @@ Projekt se sastoji od videoigre i neuronske mreže.
 
 U [requirements.txt](https://github.com/l0renaa/neunet_game/blob/master/requirements.txt) datoteci se nalazi popis svega što je potrebno instalirati za pokretanje igre, navedeni su i brojevi verzija kojima je projekt izrađen.
 
-Može se pokrenuti u tri različita mode-a:
+Može se pokrenuti u tri različita *mode*-a:
   - python neunet.py train --> pokreće treniranje neuronske mreže
   - python neunet.py test --> prikazuje rad već istrenirane neuronske mreže
   - python neunet.py play --> pokreće igru koju korisnik može samostalno igrati
