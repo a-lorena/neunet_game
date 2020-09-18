@@ -7,7 +7,7 @@ vec = pg.math.Vector2
 
 class Player(pg.sprite.Sprite):
     def __init__(self, game):
-        # -- DODAVANJE SLIKA U GRUPE --
+        # -- DODAVANJE OBJEKTA U GRUPE --
         self.groups = game.all_sprites, game.all_player
         pg.sprite.Sprite.__init__(self, self.groups)
 
@@ -28,17 +28,9 @@ class Player(pg.sprite.Sprite):
         self.mr_images.append(image)
         image = pg.image.load("Images/Player/Player_walk_right.png")
         self.mr_images.append(image)
-        image = pg.image.load("Images/Player/Player_idle_right.png")
-        self.mr_images.append(image)
-        image = pg.image.load("Images/Player/Player_walk_right.png")
-        self.mr_images.append(image)
 
         # -- SLIKE KRETANJA ULIJEVO --
         self.ml_images = []
-        image = pg.image.load("Images/Player/Player_idle_left.png")
-        self.ml_images.append(image)
-        image = pg.image.load("Images/Player/Player_walk_left.png")
-        self.ml_images.append(image)
         image = pg.image.load("Images/Player/Player_idle_left.png")
         self.ml_images.append(image)
         image = pg.image.load("Images/Player/Player_walk_left.png")
@@ -53,83 +45,78 @@ class Player(pg.sprite.Sprite):
 
         self.image = self.mr_images[0]
         self.rect = self.image.get_rect()
-        self.rect.x = 96
-        # self.rect.center = (70, WINDOW_HEIGHT-64)
+        self.rect.x = 50
 
-        self.pos = vec(96, WINDOW_HEIGHT-64)  # Position
-        self.vel = vec(0, 0)
-        self.acc = vec(0, 0)
-        self.x = 96
+        self.pos = vec(50, WINDOW_HEIGHT - 64)  # Početna pozicija
+        self.vel = vec(0, 0)                    # Brzina
+        self.acc = vec(0, 0)                    # Ubrzanje
+        self.x = 50
         self.y = 128
 
-        self.wait = 0
-        self.dir = 'r'
-        self.frame = 0
-        self.sprite = 0
-        self.jumping = False
+        self.wait = 0           # Vrijeme promjene slike, koristeno za računanje koliko je vremena prošlo od promjene
+        self.dir = 'r'          # Smjer kretanja igrača
+        self.sprite = 0         # Redni broj trenutačne slike
+        self.jumping = False    # Da li igrač skače
 
-    # -- FUNKCIJA SKAKANJA --
+    # -- METODA SKAKANJA --
     def jump(self):
-        hits = pg.sprite.spritecollide(self, self.game.can_stand, False)
+        hits = pg.sprite.spritecollide(self, self.game.all_ground, False)
 
         if hits:
             self.vel.y = -PLAYER_JUMP
 
-    # -- FUNKCIJA ANIMACIJE KRETANJA --
+    # -- METODA ANIMACIJE KRETANJA --
     # Mora voditi računa o smjeru kretanja, trenutnoj slici i kada je slika promijenjena
-    def animate(self, sprite, dir):
-        if dir == 'r':
+    def animate(self, sprite):
+        if self.dir == 'r':
             if sprite == 0:
                 self.image = self.mr_images[1]
                 self.sprite = 1
                 self.wait = time.time()
             elif sprite == 1:
-                self.image = self.mr_images[2]
-                self.sprite = 2
-                self.wait = time.time()
-            elif sprite == 2:
-                self.image = self.mr_images[3]
-                self.sprite = 3
-                self.wait = time.time()
-            elif sprite == 3:
                 self.image = self.mr_images[0]
                 self.sprite = 0
                 self.wait = time.time()
 
-        elif dir == 'l':
+        elif self.dir == 'l':
             if sprite == 0:
                 self.image = self.ml_images[1]
                 self.sprite = 1
                 self.wait = time.time()
             elif sprite == 1:
-                self.image = self.ml_images[2]
-                self.sprite = 2
-                self.wait = time.time()
-            elif sprite == 2:
-                self.image = self.ml_images[3]
-                self.sprite = 3
-                self.wait = time.time()
-            elif sprite == 3:
                 self.image = self.ml_images[0]
                 self.sprite = 0
                 self.wait = time.time()
 
-    # -- FUNKCIJA ZA KRETANJE IGRAČA --
+    # -- METODA ZA KRETANJE IGRAČA --
     def update(self):
         self.acc = vec(0, PLAYER_GRAVITY)
 
         keys = pg.key.get_pressed()
         if keys[pg.K_LEFT]:
-            self.game.direction = False
+            if not self.jumping:
+                self.dir = 'l'
+                if time.time() - self.wait > 0.2:
+                    self.animate(self.sprite)
             self.acc.x = -PLAYER_ACCELERATION
         if keys[pg.K_RIGHT]:
-            self.game.direction = True
+            if not self.jumping:
+                self.dir = 'r'
+                if time.time() - self.wait > 0.2:
+                    self.animate(self.sprite)
             self.acc.x = PLAYER_ACCELERATION
+        if keys[pg.K_UP]:
+            self.jumping = True
+            if self.dir == 'r':
+                self.image = self.jump_images[0]
+            else:
+                self.image = self.jump_images[1]
+            self.jump()
 
-        # apply friction
+        # Primijeni trenje
         self.acc.x += self.vel.x * PLAYER_FRICTION
-        # equations of motion
+        # Jednadžba gibanja
         self.vel += self.acc
-        self.pos += self.vel + 0.5 * self.acc
+        self.pos += 0.5 * self.acc + self.vel
 
         self.rect.midbottom = self.pos
