@@ -21,12 +21,8 @@ class Game:
         self.running = True
         self.player = None
 
-        self.runs = True
-
         self.reward = 0.1
         self.terminal = False
-
-        self.test = 0
 
     def load_data(self):
         # -- UČITAVANJE MAPE --
@@ -39,7 +35,6 @@ class Game:
 
         self.all_ground = pg.sprite.Group()
         self.all_platforms = pg.sprite.Group()
-        self.can_stand = pg.sprite.Group()
 
         self.all_food = pg.sprite.Group()
         self.all_ants = pg.sprite.Group()
@@ -49,7 +44,6 @@ class Game:
         self.flag = pg.sprite.Group()
 
         self.score = 0
-        self.test = 0
 
         # -- UČITAVANJE MAPE --
         for row, tiles in enumerate(self.map.data):
@@ -59,7 +53,7 @@ class Game:
                 if tile == '2':
                     Ground(self, col, row, tile)
                 if tile == 'A':
-                    Ants(self, col, row)
+                    Ant(self, col, row)
                 if tile == 'C':
                     Corn(self, col, row)
                 if tile == 'W':
@@ -79,7 +73,6 @@ class Game:
 
         podaci = self.run(input_actions)
 
-        # print(podaci)
         return podaci
 
     def run(self, input_actions):
@@ -93,15 +86,13 @@ class Game:
             podaci = self.draw()
             self.clock.tick(FPS)
 
-        # print(podaci)
         return podaci
 
     def events(self, input_actions):
         # -- PROVJERAVA IZLAZAK IZ IGRE --
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                if self.playing:
-                    self.playing = False
+                self.playing = False
                 self.running = False
                 pg.quit()
 
@@ -114,29 +105,22 @@ class Game:
         self.all_sprites.update(input_actions)
         self.all_ground.update()
         self.all_platforms.update()
-        self.can_stand.update()
         self.all_food.update()
 
         self.player.update(input_actions)
 
-        self.test += 1
-
-        # self.terminal = False
-
         # -- PROVJERA AKO SE IGRAČ NALAZI NA PLATFORMI --
         if self.player.vel.y > 0:
-            hits_platform = pg.sprite.spritecollide(self.player, self.can_stand, False)
+            hits_platform = pg.sprite.spritecollide(self.player, self.all_ground, False)
             if hits_platform:
                 self.player.pos.y = hits_platform[0].rect.top
                 self.player.vel.y = 0
-                #self.player.rect.bottom = self.player.pos[1]
 
         if pg.sprite.spritecollide(self.player, self.all_ground, False):
             self.player.rect.x -= 1
-        """
+
         if self.player.pos.y <= 472:
             self.reward += 0.1
-        """
 
         # -- AKO IGRAČ UPADNE U RUPU IGRA SE ZAVRŠAVA I POČINJE NOVA --
         if self.player.pos.y > (WINDOW_HEIGHT+50):
@@ -177,7 +161,7 @@ class Game:
             pg.draw.line(self.window, WHITE, (0, y), (WINDOW_WIDTH, y))
 
     def draw(self):
-        # -- ISPUNA PROZORA PLAVOM BOJOM (NEBOM) --
+        # -- ISPUNA PROZORA CRNOM BOJOM (POZADINA) --
         self.window.fill(BLACK)
 
         # -- CRTANJE SVIH SLIČICA --
@@ -201,7 +185,5 @@ class Game:
         podaci.append(self.image_data)
         podaci.append(self.reward)
         podaci.append(self.terminal)
-
-        # print("podaci: ", podaci)
 
         return podaci
