@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import sys
@@ -9,8 +8,6 @@ import time
 import cv2
 import random
 
-from torch import Tensor
-
 from main_for_ai import Game
 
 from main import Game as Play_Game
@@ -18,6 +15,7 @@ import pygame as pg
 
 
 class Net(nn.Module):
+    # -- INICIJALIZACIJA NEURONSKE MREŽE --
     def __init__(self):
         super().__init__()
 
@@ -50,10 +48,8 @@ class Net(nn.Module):
         output = self.relu3(output)
 
         output = output.view(output.size()[0], -1)
-        # print("before fc4: ", output.size())
         output = self.fc4(output)
         output = self.relu4(output)
-        # print("after fc4: ", output.size())
         output = self.fc5(output)
 
         return output
@@ -65,26 +61,28 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
+# -- SKALIRANJE SLIKE I PRETVARANJE U CRNO-BIJELO --
 def resize_and_bgr2gray(img):
-    # img = img[0:600, 0:600]
-    image_data = cv2.cvtColor(cv2.resize(img, (84, 84)), cv2.COLOR_BGR2GRAY)    # to grayscale
-    image_data[image_data > 0] = 255    # ako nije crno (0), tj sivo je, onda pretvori u bijelo (255); nema sivih tonova
-    image_data = np.reshape(image_data, (84, 84, 1))    # resize
+    image_data = cv2.cvtColor(cv2.resize(img, (84, 84)), cv2.COLOR_BGR2GRAY)
+    image_data[image_data > 0] = 255
+    image_data = np.reshape(image_data, (84, 84, 1))
 
     return image_data
 
 
+# -- PRETVARANJE SLIKE U TENZOR --
 def image_to_tensor(img):
-    img_tensor = img.transpose(2, 0, 1)             # transponiranje matrice; x,y,z --> z,x,y
-    img_tensor = img_tensor.astype(np.float32)      # pretvaranje podataka u float
-    img_tensor = torch.from_numpy(img_tensor)       # pretvaranje u torch tensor
+    img_tensor = img.transpose(2, 0, 1)
+    img_tensor = img_tensor.astype(np.float32)
+    img_tensor = torch.from_numpy(img_tensor)
 
     if torch.cuda.is_available():
-        img_tensor = img_tensor.cuda()              # ako je cuda available tensor ide na cuda
+        img_tensor = img_tensor.cuda()
 
-    return img_tensor                               # vraća tensor
+    return img_tensor
 
 
+# -- TRENIRANJE NOVE NEURONSKE MREŽE --
 def train(model, start):
     optimizer = optim.Adam(model.parameters(), lr=1e-6)
     criterion = nn.MSELoss()
@@ -93,14 +91,10 @@ def train(model, start):
 
     replay_memory = []
 
-
     action = torch.zeros([model.number_of_actions], dtype=torch.float32)
-    action[0] = 1
+    action[0] = 1       # Pokušaj sa prvom akcijom po redu
 
-    # image_data = game_state.new(action)[0]
-    # reward = game_state.new(action)[1]
-    # terminal = game_state.new(action)[2]
-
+    # Dohvaćanje novog stanja i manipulacija slikom
     image_data, reward, terminal = game_state.new(action)
     image_data = resize_and_bgr2gray(image_data)
     image_data = image_to_tensor(image_data)
@@ -112,8 +106,9 @@ def train(model, start):
 
     epsilon_decrements = np.linspace(model.initial_epsilon, model.final_epsilon, model.number_of_iterations)
 
-    while iteration < model.number_of_iterations:       # main loop
-        output = model(state)[0]                        # dobi output iz nn
+    #  Treniranje dok je broj iteracija manji od zadanog
+    while iteration < model.number_of_iterations:
+        output = model(state)[0]
         action = torch.zeros([model.number_of_actions], dtype=torch.float32)
 
         if torch.cuda.is_available():
@@ -121,6 +116,7 @@ def train(model, start):
 
         random_action = random.random() <= epsilon
 
+        # Nasumična akcija
         if random_action:
             print("Performed random action!")
         action_index = [torch.randint(model.number_of_actions, torch.Size([]), dtype=torch.int)
@@ -130,8 +126,10 @@ def train(model, start):
         if torch.cuda.is_available():
             action_index = action_index.cuda()
 
+        # Aktivacija nasumične akcije
         action[action_index] = 1
 
+        # Dohvaćanje novog stanja i manipulacija slikom
         image_data_1, reward, terminal = game_state.new(action)
         image_data_1 = resize_and_bgr2gray(image_data_1)
         image_data_1 = image_to_tensor(image_data_1)
@@ -179,19 +177,21 @@ def train(model, start):
         state = state_1
         iteration += 1
 
+        # Sprema se svaka 200-ta iteracija
         if iteration % 200 == 0:
-            torch.save(model, "pretrained_model_2/current_model_" + str(iteration) + ".pth")
+            torch.save(model, "pretrained_model_3/current_model_" + str(iteration) + ".pth")
 
         print("iteration: ", iteration, "elapsed time: ", time.time() - start, "epsilon: ", epsilon,
               "action: ", action_index.cpu().detach().numpy(), "reward: ", reward.numpy()[0][0],
               "Q max: ", np.max(output.cpu().detach().numpy()))
 
 
+# -- TESTIRANJE ISTRENIRANE NEURONSKE MREŽE --
 def test(model):
     game_state = Game()
 
-    # input_actions[0] == 1: stoji
-    # input_actions[1] == 1: skači
+    # input_actions[0] == 1: miruj
+    # input_actions[1] == 1: skoči
 
     action = torch.zeros([model.number_of_actions], dtype=torch.float32)
     action[0] = 1
@@ -241,23 +241,15 @@ def main(mode):
         if not os.path.exists('pretrained_model_2/'):     # ako ne postoji folder
             os.mkdir('pretrained_model_2/')               # napravi ga
 
-        model = Net()        #  za novi model
-
-        # za učitati postojeći model
-        """
-        model = torch.load(
-            'pretrained_model/current_model_3600.pth',
-            map_location='cpu' if not cuda_is_available else None
-        ).eval()
-        """
+        model = Net()
 
         if cuda_is_available:       # ako je cuda available
             model = model.cuda()    # model ide na GPU
 
-        model.apply(init_weights)   # ...
+        model.apply(init_weights)
         start = time.time()         # početno vrijeme
 
-        train(model, start)         # započinje treniranje
+        train(model, start)
 
     elif mode == 'play':
         game = Play_Game()
