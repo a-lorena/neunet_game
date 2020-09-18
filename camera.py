@@ -14,7 +14,7 @@ class Camera:
 
     def update(self, target):
         # -- AŽURIRANJE KOORDINATE x NA KOJOJ SE KAMERA NALAZI --
-        x = -target.rect.x + int(WINDOW_WIDTH / 8)
+        x = -target.rect.x + int(WINDOW_WIDTH / 4)
         y = 0
 
         # -- OGRANIČAVANJE POMICANJA KAMERE --
