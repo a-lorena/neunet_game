@@ -5,8 +5,7 @@ from settings import *
 class Ground(pg.sprite.Sprite):
     def __init__(self, game, x, y, type_of_ground):
         # -- DODAVANJE SLIKA U GRUPE --
-        self.groups = game.all_sprites, game.all_ground, game.can_stand
-        self.player = game.player
+        self.groups = game.all_sprites, game.all_ground
         pg.sprite.Sprite.__init__(self, self.groups)
 
         # -- UČITAVANJE SLIKA --
