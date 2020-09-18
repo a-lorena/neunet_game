@@ -11,8 +11,10 @@ class Map:
             for line in f:
                 self.data.append(line.strip())
 
+        # -- BROJ STUPACA I REDAKA --
         self.tile_width = len(self.data[0])
         self.tile_height = len(self.data)
 
+        # -- DIMENZIJE CIJELE MAPE --
         self.width = self.tile_width * TILE_SIZE
         self.height = self.tile_height * TILE_SIZE
