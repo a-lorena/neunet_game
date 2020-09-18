@@ -237,11 +237,11 @@ class Game:
         pg.display.flip()
         pg.display.update()
 
-
+"""
 game = Game()
 
 while game.running:
     game.new()
 
 pg.quit()
-
+"""
