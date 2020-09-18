@@ -13,20 +13,21 @@ class Player(pg.sprite.Sprite):
         self.image = pg.image.load("Images/Player/Player_idle_right.png")
         self.rect = self.image.get_rect()
         self.rect.x = 96
-        #self.rect.center = (70, WINDOW_HEIGHT-64)
 
-        self.pos = vec(96, WINDOW_HEIGHT-64)  # Position
-        self.vel = vec(0, 0)
-        self.acc = vec(0, 0)
-        self.x = 0
-        self.y = 0
+        self.pos = vec(96, WINDOW_HEIGHT-64)  # Početna pozicija
+        self.vel = vec(0, 0)                  # Brzina
+        self.acc = vec(0, 0)                  # Ubrzanje
+        self.x = 50
+        self.y = 128
 
+    # -- METODA SKAKANJA --
     def jump(self):
-        hits = pg.sprite.spritecollide(self, self.game.can_stand, False)
+        hits = pg.sprite.spritecollide(self, self.game.all_ground, False)
 
         if hits:
             self.vel.y = -PLAYER_JUMP
 
+    # -- METODA ZA KRETANJE IGRAČA --
     def update(self, input_actions):
         self.acc = vec(0, PLAYER_GRAVITY)
 
@@ -37,10 +38,10 @@ class Player(pg.sprite.Sprite):
         # if input_actions[2] == 1:
             # self.acc.x = -PLAYER_ACCELERATION
 
-        # -- TRENJE --
+        # Primijeni trenje
         self.acc.x += self.vel.x * PLAYER_FRICTION
-        # --JEDNADŽBE GIBANJA --
+        # Jednadžba gibanja
         self.vel += self.acc
         self.pos += self.vel + 0.5 * self.acc
-        # -- AŽURIRANJE POZICIJE IGRAČA --
+
         self.rect.midbottom = self.pos
