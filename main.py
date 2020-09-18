@@ -8,6 +8,8 @@ from tilemap import *
 from camera import *
 from enemy import *
 
+from pygame import mixer
+
 FPS = 60
 
 
@@ -22,23 +24,22 @@ class Game:
         self.icon = pg.image.load("Images/Icon.png")
         pg.display.set_icon(self.icon)
 
+        mixer.music.load("Music/Grasslands Theme.mp3")
+        mixer.music.play(-1)
+
         self.clock = pg.time.Clock()
         self.load_data()
         self.running = True
         self.player = None
 
-        self.pocetak = 0
-        self.win = False
-        self.lost = 0
-        self.direction = True        # Smjer igrača; true --> desno, false --> lijevo
+        self.pocetak = 0            # Vrijeme pokupljanja zastavice
+        self.score = 0              # Ukupno ostvareni bodovi
+        self.win = False            # Uspješno odigrana igra
+        self.life = 2               # Broj rezervnih života
 
-        self.points_image = None
-        self.draw_points = False
-        self.points_appear = 0
-
-        self.runs = True
-
-        self.life = 2
+        self.points_image = None    # Slika bodova
+        self.draw_points = False    # Treba li crtati bodove
+        self.points_appear = 0      # Vrijeme crtanja bodova
 
     def load_data(self):
         # -- UČITAVANJE MAPE --
@@ -53,7 +54,6 @@ class Game:
 
         self.all_ground = pg.sprite.Group()
         self.all_platforms = pg.sprite.Group()
-        self.can_stand = pg.sprite.Group()
 
         self.all_food = pg.sprite.Group()
         self.all_ants = pg.sprite.Group()
@@ -67,7 +67,6 @@ class Game:
 
         self.score = 0
         self.win = False
-        self.lost = 0
         self.direction = True       # Kako bi na početku svake igre bio okrenut udesno
 
         # -- UČITAVANJE MAPE --
@@ -80,7 +79,7 @@ class Game:
                 if tile == 'E':
                     Enemy(self, col, row)
                 if tile == 'A':
-                    Ants(self, col, row)
+                    Ant(self, col, row)
                 if tile == 'C':
                     Corn(self, col, row)
                 if tile == 'W':
@@ -96,6 +95,7 @@ class Game:
 
         # -- INICIJALIZACIJA KAMERE --
         self.camera = Camera(self.map.width, self.map.height)
+
         self.hit = False
 
         self.run()
@@ -111,62 +111,29 @@ class Game:
             self.clock.tick(FPS)
 
     def events(self):
-        # -- PROVJERAVA IZLAZAK IZ IGRE --
+        # -- PROVJERAVANJE IZLASKA IZ IGRE --
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                if self.playing:
-                    self.playing = False
+                self.playing = False
                 self.running = False
-
-        # -- PROVJERA AKO IGRAČ SKAČE --
-        keys = pg.key.get_pressed()
-        if keys[pg.K_UP]:
-            self.player.jumping = True
-            if self.direction:
-                self.player.image = self.player.jump_images[0]
-            else:
-                self.player.image = self.player.jump_images[1]
-            self.player.jump()
-
-        # -- ANIMACIJE KRETANJA IGRAČA --
-        if keys[pg.K_RIGHT]:
-            if not self.player.jumping:
-                self.player.dir = 'r'
-                if time.time() - self.player.wait > 0.2:
-                    self.player.animate(self.player.sprite, self.player.dir)
-        if keys[pg.K_LEFT]:
-            if not self.player.jumping:
-                self.player.dir = 'l'
-                if time.time() - self.player.wait > 0.2:
-                    self.player.animate(self.player.sprite, self.player.dir)
 
     def update(self):
         # -- UPDATE --
         self.all_sprites.update()
-        self.all_ground.update()
-        self.all_platforms.update()
-        self.can_stand.update()
-        self.all_food.update()
 
         # -- PROVJERA AKO SE IGRAČ NALAZI NA PLATFORMI --
         if self.player.vel.y > 0:
-            hits_platform = pg.sprite.spritecollide(self.player, self.can_stand, False)
-            if hits_platform:                                       # Changing sprite when player lands
-                #if self.direction:
-                 #   self.player.image = self.player.idle_images[0]
-                #else:
-                 #   self.player.image = self.player.idle_images[1]
-
+            hits_platform = pg.sprite.spritecollide(self.player, self.all_ground, False)
+            if hits_platform:
                 self.player.pos.y = hits_platform[0].rect.top
                 self.player.vel.y = 0
-                #self.player.rect.bottom = self.player.pos[1]
                 self.player.jumping = False
 
-        # -- AKO IGRAČ UPADNE U RUPU IGRA SE ZAVRŠAVA I POČINJE NOVA --
+        # -- AKO IGRAČ UPADNE U RUPU IGRA SE RESETIRA --
         if self.player.pos.y > (WINDOW_HEIGHT+50):
             self.playing = False
 
-        # -- PROVJERA I AŽURIRANJE OSVOJENIH BODOVA --
+        # -- PROVJERA SAKUPLJENOG I AŽURIRANJE BODOVA --
         if pg.sprite.spritecollide(self.player, self.all_ants, True):
             self.score += 1
             self.points_appear = time.time()
@@ -192,26 +159,20 @@ class Game:
             self.win = True
             self.hit = True
             self.pocetak = time.time()
-
             self.score += 100
 
-        # -- PROVJERAVA AKO JE DOŠLO DO DOTICAJA SA NEPRIJATELJEM --
+        # -- PROVJERA AKO JE DOŠLO DO DOTICAJA SA NEPRIJATELJEM --
         if pg.sprite.spritecollide(self.player, self.all_enemies, True):
             self.life -= 1
 
             if self.life < 0:
                 self.pocetak = time.time()
 
-        # -- KAMERA UPDATE --
+        # -- AŽURIRANJE KAMERE --
         self.camera.update(self.player)
 
         # KADA IGRAČ POKUPI ZASTAVICU POBJEDIO JE, TE NAKON 2 SEKUDNE KREĆE NOVA IGRA
-        if self.hit == True:
-            if time.time() - self.pocetak > 2:
-                self.playing = False
-
-        # AKO JE IGRAČA IZGUBIO OBA ŽIVOTA, TJ TRI PUTA SE SUDARIO SA NEPRIJATELJIMA IZGUBIO JE IGRU I KREĆE NOVA
-        if self.life < 0:
+        if self.hit:
             if time.time() - self.pocetak > 2:
                 self.playing = False
 
@@ -223,7 +184,7 @@ class Game:
             pg.draw.line(self.window, WHITE, (0, y), (WINDOW_WIDTH, y))
 
     def draw(self):
-        # -- ISPUNA PROZORA PLAVOM BOJOM (NEBOM) --
+        # -- ISPUNA PROZORA PLAVOM BOJOM (NEBO) --
         self.window.fill(BLUE)
 
         # -- CRTANJE SVIH SLIČICA --
@@ -266,8 +227,12 @@ class Game:
             score_text = win_font.render("You lost!", True, WHITE)
             score_text_width = score_text.get_width()
             score_text_height = score_text.get_height()
-            self.window.blit(score_text, [WINDOW_WIDTH / 2 - score_text_width / 2, WINDOW_HEIGHT / 2 - score_text_height / 2])
+            self.window.blit(score_text, [WINDOW_WIDTH / 2 - score_text_width / 2,
+                                          WINDOW_HEIGHT / 2 - score_text_height / 2])
+
             self.player.pos.y = -1000       #  Pomiče igrača van kamere kada izgubi
+            if time.time() - self.pocetak > 2:
+                self.playing = False
 
         pg.display.flip()
         pg.display.update()
@@ -279,3 +244,4 @@ while game.running:
     game.new()
 
 pg.quit()
+
