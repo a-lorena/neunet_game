@@ -21,3 +21,6 @@ Kontrole:
 
 Većina datoteka je zajednička neuronskoj mreži i samoj igri, poput enemy.py koja učitava slike neprijatelja, te ih pomiče i animira. Datoteke koje u nazivu sadrže "_for_ai" su namijenje neuronskoj mreži jer su pojednostavljene verzije originalnih datoteka ili učitavaju drugačije podatke. Primjerice player_for_ai.py ne sadrži provjeru pritisnute tipke, ne učitava sve slike, te ne izvodi animacije.
 
+<p align="middle">
+  <img src="/Images/DemoImage.PNG" width="500" />
+</p>
